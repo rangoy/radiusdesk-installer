@@ -1,19 +1,25 @@
 ---
-- name: Ensuring AppArmor is disabled (Ubuntu 14+)
-  shell: "service apparmor stop && update-rc.d -f apparmor remove"
 
-- name: Bootstraping Download Directory for RADIUSDesk Sources (Ubuntu 14+)
+- name: Check if apparmor service exists
+  stat: path=/etc/init.d/apparmor
+  register: apparmor_service
+
+- name: Ensuring AppArmor is disabled (Ubuntu 14+/Debian jessie)
+  shell: "service apparmor stop && update-rc.d -f apparmor remove"
+  when: apparmor_service.stat.exists
+
+- name: Bootstraping Download Directory for RADIUSDesk Sources (Ubuntu 14+/Debian jessie)
   file:
     path={{ temp_src_dir }}
     state=directory
     mode=0777
-  
-- name: Ensuring Apache is not installed (Ubuntu 14+)
+
+- name: Ensuring Apache is not installed (Ubuntu 14+/Debian jessie)
   apt:
     name={{ apache_pkg_name }}
     state=absent
 
-- name: Installing Nginx (Ubuntu 14+)
+- name: Installing Nginx (Ubuntu 14+/Debian jessie)
   apt:
     name={{ nginx_pkg_name }}
     state=installed
@@ -24,18 +30,26 @@
     name={{ item }}
     state=installed
     update_cache=yes
-  with_items: "{{ rd_php5_pkgs }}"
-  when: "ansible_distribution_version < '16'"
+  with_items: "{{ rd_ubuntu_php5_pkgs }}"
+  when: ( ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu')
 
-- name: Installing PHP7 packages (Ubuntu 14+)
+- name: Installing PHP5 packages (Debian jessie)
+  apt:
+    name={{ item }}
+    state=installed
+    update_cache=yes
+  with_items: "{{ rd_debian_php5_pkgs }}"
+  when: (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
+
+- name: Installing PHP7 packages (Ubuntu 16+)
   apt:
     name={{ item }}
     state=installed
     update_cache=yes
   with_items: "{{ rd_php7_pkgs }}"
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Installing RadiusDesk packages (Ubuntu 14+)
+- name: Installing RadiusDesk packages (Ubuntu 14+/Debian jessie)
   apt:
     name={{ item }}
     state=installed
@@ -45,7 +59,16 @@
   notify:
     - Start Nginx
     - Start PHP-FPM
-  when: "ansible_distribution_version < '16'"
+  when: ( ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
+
+- name: Installing Language packages (Ubuntu 14+)
+  apt:
+    name={{ item }}
+    state=installed
+    force=yes
+    update_cache=yes
+  with_items: "{{ rd_langpack_ubuntu }}"
+  when: ( ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu')
 
 - name: Installing RadiusDesk packages (Ubuntu 16+)
   apt:
@@ -56,100 +79,101 @@
   notify:
     - Start Nginx
     - Start PHP7-FPM
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Configuring PHP5-FPM to use UNIX sockets (Ubuntu 14+)
+- name: Configuring PHP5-FPM to use UNIX sockets (Ubuntu 14+/Debian jessie)
   template:
     src="nginx/php_fpm.www.conf.j2"
     dest={{ php_fpm_config }}
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
-- name: Configuring PHP7-FPM to use UNIX sockets (Ubuntu 14+)
+- name: Configuring PHP7-FPM to use UNIX sockets (Ubuntu 6+)
   template:
     src="nginx/php_fpm.www.conf.j2"
     dest={{ php7_fpm_config }}
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Configuring Nginx to use UNIX sockets (Ubuntu 14+)
+- name: Configuring Nginx to use UNIX sockets (Ubuntu 14+/Debian)
   template:
     src="nginx/nginx.default.conf.j2"
     dest={{ nginx_default_config }}
 
-- name: Configuring Nginx for RadiusDesk Web Compression (Ubuntu 14+)
+- name: Configuring Nginx for RadiusDesk Web Compression (Ubuntu 14+/Debian)
   template:
     src="nginx/nginx.conf.j2"
     dest={{ nginx_config }}
 
-- name: Restarting RadiusDesk services for PHP5 (Ubuntu 14+)
+- name: Restarting RadiusDesk services for PHP5 (Ubuntu 14+/Debian jessie)
   service:
     name={{ item }}
     state=restarted
   with_items:
     - "{{ nginx_pkg_name }}"
     - "{{ php_fpm_service_name }}"
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
-- name: Restarting RadiusDesk services for PHP7 (Ubuntu 14+)
+
+- name: Restarting RadiusDesk services for PHP7 (Ubuntu 16+)
   service:
     name={{ item }}
     state=restarted
   with_items:
     - "{{ nginx_pkg_name }}"
     - "{{ php7_fpm_service_name }}"
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Downloading CakePHP Source from Github (Ubuntu 14+)
-  git: 
+- name: Downloading CakePHP Source from Github (Ubuntu 14+/Debian)
+  git:
     dest={{ temp_src_dir }}/cake2
     repo={{ cakephp_git_repo }}
     update=no
     version=2.7.9
 
-- name: Copying CakePHP Source to Webroot (Ubuntu 14+)
+- name: Copying CakePHP Source to Webroot (Ubuntu 14+/Debian)
   shell: cp -a {{ temp_src_dir | quote }}/cake2 {{ nginx_webroot | quote }}/cake2
 
-- name: Downloading RadiusDesk CakePHP Source from Subversion (Ubuntu 14+)
+- name: Downloading RadiusDesk CakePHP Source from Subversion (Ubuntu 14+/Debian)
   shell: svn checkout -r {{ rd_svn_revision }} {{ rd_cake_svn_repo }} {{ temp_src_dir }}/rd_cake
 
-- name: Copying RadiusDesk CakePHP App Source to Webroot (Ubuntu 14+)
+- name: Copying RadiusDesk CakePHP App Source to Webroot (Ubuntu 14+/Debian)
   shell: cp -a {{ temp_src_dir | quote }}/rd_cake {{ nginx_webroot | quote }}/cake2/
 
-- name: Downloading RadiusDesk CakePHP 3 Source from Subversion (Ubuntu 14+)
+- name: Downloading RadiusDesk CakePHP 3 Source from Subversion (Ubuntu 14+/Debian)
   shell: svn checkout -r {{ rd_svn_revision }} {{ rd_cake3_svn_repo }} {{ temp_src_dir }}/cake3
 
-- name: Copying RadiusDesk CakePHP 3 Source to Webroot (Ubuntu 14+)
+- name: Copying RadiusDesk CakePHP 3 Source to Webroot (Ubuntu 14+/Debian)
   shell: cp -a {{ temp_src_dir | quote }}/cake3 {{ nginx_webroot | quote }}/cake3
 
-- name: Downloading RadiusDesk Viewer Source from Subversion (Ubuntu 14+)
+- name: Downloading RadiusDesk Viewer Source from Subversion (Ubuntu 14+/Debian)
   shell: svn checkout -r {{ rd_svn_revision }} {{ rd_svn_repo }} {{ temp_src_dir }}/rd
 
-- name: Copying RadiusDesk Viewer Source to Webroot (Ubuntu 14+)
+- name: Copying RadiusDesk Viewer Source to Webroot (Ubuntu 14+/Debian)
   shell: cp -a {{ temp_src_dir | quote }}/rd {{ nginx_webroot | quote }}/
 
-- name: Downloading RadiusDesk Login Source from Subversion (Ubuntu 14+)
+- name: Downloading RadiusDesk Login Source from Subversion (Ubuntu 14+/Debian)
   shell: svn checkout -r {{ rd_svn_revision }} {{ rd_login_svn_repo }} {{ temp_src_dir }}/rd_login
 
-- name: Copying RadiusDesk Login Source webroot (Ubuntu 14+)
+- name: Copying RadiusDesk Login Source webroot (Ubuntu 14+/Debian)
   shell: cp -a {{ temp_src_dir | quote }}/rd_login {{ nginx_webroot | quote }}/
 
-- name: Configuring UAM Service for RadiusDesk Login (Ubuntu 14+)
+- name: Configuring UAM Service for RadiusDesk Login (Ubuntu 14+/Debian)
   template:
     dest="{{ nginx_webroot }}/rd_login/services/uam.php"
     src="uam.php.j2"
 
-- name: Checking if we already downloaded ExtJS 6.2 sources (Ubuntu 14+)
+- name: Checking if we already downloaded ExtJS 6.2 sources (Ubuntu 14+/Debian)
   stat:
     path="{{ temp_src_dir }}/ext-6-2-sencha_cmd.tar.gz"
   register: extjs_src
 
-- name: Downloading ExtJS 6.2 sources from Subversion (Ubuntu 14+)
+- name: Downloading ExtJS 6.2 sources from Subversion (Ubuntu 14+/Debian)
   get_url:
     url={{ extjs_62_src_url }}
     dest="{{ temp_src_dir }}/ext-6-2-sencha_cmd.tar.gz"
     validate_certs=no
   when: "extjs_src.stat.exists == False or extjs_src.stat.md5 != '{{ extjs_62_src_md5_sum }}'"
 
-- name: Extracting ExtJS 6.2 archive for RadiusDesk Viewer (Ubuntu 14+)
+- name: Extracting ExtJS 6.2 archive for RadiusDesk Viewer (Ubuntu 14+/Debian)
   unarchive:
     src="{{ temp_src_dir }}/ext-6-2-sencha_cmd.tar.gz"
     dest={{ nginx_webroot }}/rd/
@@ -158,7 +182,7 @@
     mode=0664
     copy=no
 
-- name: Correcting Webroot ownership and permissions (Ubuntu 14+)
+- name: Correcting Webroot ownership and permissions (Ubuntu 14+/Debian)
   file:
     path={{ nginx_webroot }}
     owner={{ web_user }}
@@ -168,37 +192,38 @@
     recurse=yes
 
 - name: Fix PHP5 Default Timezone
-  lineinfile: 
+  lineinfile:
     dest="{{ php_config_file }}"
     line='date.timezone = {{ php_timezone }}'
     regexp='^;date.timezone'
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
 - name: Fix PHP7 Default Timezone
-  lineinfile: 
+  lineinfile:
     dest="{{ php7_config_file }}"
     line='date.timezone = {{ php_timezone }}'
     regexp='^;date.timezone'
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Ensuring Nginx is Started (Ubuntu 14+)
+- name: Ensuring Nginx is Started (Ubuntu 14+/Debian)
   service:
     name={{ nginx_service_name }}
     state=started
 
-- name: Ensuring PHP5-FPM is Started (Ubuntu 14+)
+- name: Ensuring PHP5-FPM is Started (Ubuntu 14+/Debian)
   service:
     name={{ php_fpm_service_name }}
     state=started
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
-- name: Ensuring PHP7-FPM is Started (Ubuntu 14+)
+- name: Ensuring PHP7-FPM is Started (Ubuntu 16+)
   service:
     name={{ php7_fpm_service_name }}
     state=started
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Configuring RadiusDesk Cron Jobs (Ubuntu 14+)
+
+- name: Configuring RadiusDesk Cron Jobs (Ubuntu 14+/Debian)
   template:
     src="cron/cron.j2"
     dest="/etc/cron.d/rd"
@@ -207,19 +232,20 @@
   template:
     src="disable_strict_mode.cnf.j2"
     dest="/etc/mysql/conf.d/disable_strict_mode.cnf"
-  when: "ansible_distribution_version >= '16'" 
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Ensuring MySQL is Started (Ubuntu 14+)
+
+- name: Ensuring MySQL is Started (Ubuntu 14+/Debian)
   service:
     name={{ mysql_service_name }}
     state=started
 
-- name: Ensuring MySQL Root password has been set (Ubuntu 14+)
+- name: Ensuring MySQL Root password has been set (Ubuntu 14+/Debian)
   stat:
     path={{ mysql_my_cnf }}
   register: mysql_conf
 
-- name: Changing MySQL Root password (Ubuntu 14+)
+- name: Changing MySQL Root password (Ubuntu 14+/Debian)
   mysql_user:
     name=root
     host={{ item }}
@@ -230,13 +256,13 @@
     - Restart MySQL
   when: mysql_conf.stat.exists == False
 
-- name: Adding .my.cnf for MySQL root Password Idempotency (Ubuntu 14+)
+- name: Adding .my.cnf for MySQL root Password Idempotency (Ubuntu 14+/Debian)
   template:
     src="my.cnf.j2"
     dest={{ mysql_my_cnf }}
   when: mysql_conf.stat.exists == False
 
-- name: Remove Anonymous MySQL Users (Ubuntu 14+)
+- name: Remove Anonymous MySQL Users (Ubuntu 14+/Debian)
   mysql_user:
     name=''
     host={{ item }}
@@ -245,14 +271,14 @@
     login_password={{ mysql_root_password }}
   with_items: "{{ mysql_db_hosts }}"
 
-- name: Creating RadiusDesk Database (Ubuntu 14+)
+- name: Creating RadiusDesk Database (Ubuntu 14+/Debian)
   mysql_db:
     name={{ rd_db_name }}
     state=present
     login_user=root
     login_password={{ mysql_root_password }}
 
-- name: Creating RadiusDesk Database User (Ubuntu 14+)
+- name: Creating RadiusDesk Database User (Ubuntu 14+/Debian)
   mysql_user:
     "name={{ rd_db_user }}
     password={{ rd_db_password }}
@@ -263,7 +289,7 @@
     host={{ item }}"
   with_items: "{{ mysql_db_hosts }}"
 
-- name: Importing RadiusDesk Database (Ubuntu 14+)
+- name: Importing RadiusDesk Database (Ubuntu 14+/Debian)
   mysql_db:
     state=import
     name={{ rd_db_name }}

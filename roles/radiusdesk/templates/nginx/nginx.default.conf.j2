@@ -35,13 +35,13 @@ server {
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         #       # NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
-        {% if ansible_distribution == 'Ubuntu' and ansible_distribution_major_version >= '16' %}
+        {% if (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version >= '16') %}
         fastcgi_pass unix:{{ php7_fpm_socket }};
         {% else %}
         fastcgi_pass unix:{{ php_fpm_socket }};
         {% endif %}
         fastcgi_index index.php;
-        {% if ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '14' %}
+        {% if (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '14') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie') %}
         include fastcgi_params;
         {% else %}
         include fastcgi.conf;

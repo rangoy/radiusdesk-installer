@@ -1,13 +1,13 @@
 ---
-- name: Adding Nodesource Nodejs Apt Key for RadiusDesk (Ubuntu 14+)
+- name: Adding Nodesource Nodejs Apt Key for RadiusDesk (Ubuntu 14+/Debian)
   shell: "wget --quiet -O - https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -"
 
-- name: Adding Nodejs Main Repository for RadiusDesk (Ubuntu 14+)
+- name: Adding Nodejs Main Repository for RadiusDesk (Ubuntu 14+/Debian)
   apt_repository:
     repo: "deb https://deb.nodesource.com/node_6.x {{ ansible_distribution_release }} main"
     state: present
 
-- name: Adding Nodejs Source Repository for RadiusDesk (Ubuntu 14+)
+- name: Adding Nodejs Source Repository for RadiusDesk (Ubuntu 14+/Debian)
   apt_repository:
     repo: "deb-src https://deb.nodesource.com/node_6.x {{ ansible_distribution_release }} main"
     state: present
@@ -19,7 +19,7 @@
     update_cache=yes
   with_items: "{{ nodejs_pkgs }}"
 
-- name: "Installing Nodejs modules (tail,forever,mysql,connect) for RadiusDesk (Ubuntu 14+)"
+- name: "Installing Nodejs modules (tail,forever,mysql,connect) for RadiusDesk (Ubuntu 14+/Debian)"
   npm:
     name={{ item }}
     state=present
@@ -27,7 +27,7 @@
     production=yes
   with_items: "{{ nodejs_npm_modules }}"
 
-- name: "Installing Nodejs modules (socket.io) for RadiusDesk (Ubuntu 14+)"
+- name: "Installing Nodejs modules (socket.io) for RadiusDesk (Ubuntu 14+/Debian)"
   npm:
     name="socket.io"
     state=present
@@ -35,33 +35,33 @@
     production=yes
     version="0.9.*"
 
-- name: Configuring Nodejs Freeradius Logfile Viewer for RadiusDesk (Ubuntu 14+)
-  template: 
+- name: Configuring Nodejs Freeradius Logfile Viewer for RadiusDesk (Ubuntu 14+/Debian)
+  template:
     dest="{{ nginx_webroot }}/cake2/rd_cake/Setup/Node.js/Logfile.node.js"
     owner={{ web_user }}
     group={{ web_group }}
     mode=0644
     src="nodejs/Logfile.node.js.j2"
 
-- name: Configuring Nodejs Socket.io Startup Script for RadiusDesk (Ubuntu 14+)
-  template: 
+- name: Configuring Nodejs Socket.io Startup Script for RadiusDesk (Ubuntu 14+/Debian jessie)
+  template:
     dest="/etc/init.d/nodejs-socket-io"
     mode=0755
     src="nodejs/nodejs-socket-io.j2"
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
 - name: Configuring Nodejs Socket.io Startup Script for RadiusDesk (Ubuntu 16+ Only)
-  template: 
+  template:
     dest="/lib/systemd/system/nodejs-socket-io.service"
     mode=0755
     src="nodejs/nodejs-socket-io-service.j2"
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
-- name: Installing Nodejs Socket.io Service (Ubuntu 14+)
+- name: Installing Nodejs Socket.io Service (Ubuntu 14+/Debian jessie)
   shell: update-rc.d {{ nodejs_socketio_service_name }} defaults
   notify:
     - Restart Nodejs Socketio
-  when: "ansible_distribution_version < '16'"
+  when: (ansible_distribution_version < '16' and ansible_distribution == 'Ubuntu') or (ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie')
 
 - name: Installing Nodejs Socket.io Service (Ubuntu 16+)
   file:
@@ -69,8 +69,8 @@
     src=/usr/bin/nodejs
     force=yes
     state=link
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')
 
 - name: Reloading Nodejs Socket.io Daemon (Ubuntu 16+)
   shell: "systemctl daemon-reload && systemctl enable {{ nodejs_socketio_service_name }} && systemctl start {{ nodejs_socketio_service_name }}"
-  when: "ansible_distribution_version >= '16'"
+  when: (ansible_distribution_version >= '16' and ansible_distribution == 'Ubuntu')

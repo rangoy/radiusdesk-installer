@@ -4,17 +4,19 @@ apache_pkg_name: apache2
 
 # RadiusDesk Packages (Ubuntu 14+)
 rd_pkgs:
- - language-pack-en-base
- - language-pack-af
- - language-pack-fa
  - python-mysqldb
  - subversion
  - git
  - unzip
  - tar
 
+langpack_ubuntu:
+ - language-pack-en-base
+ - language-pack-af
+ - language-pack-fa
+
 # RadiusDesk PHP5 Packages (Ubuntu 14+)
-rd_php5_pkgs:
+rd_ubuntu_php5_pkgs:
  - php5-fpm
  - php5-mysql
  - php5-xcache
@@ -25,6 +27,19 @@ rd_php5_pkgs:
  - mysql-server-5.6
  - mysql-client-5.6
  - mysql-client-core-5.6
+
+# RadiusDesk PHP5 Packages (Ubuntu 14+)
+rd_debian_php5_pkgs:
+ - php5-fpm
+ - php5-mysql
+ - php5-xcache
+ - php5-cli
+ - php5-gd
+ - php5-curl
+ - php5-intl
+ - mariadb-server-10.0
+ - mariadb-client-10.0
+ - mariadb-client-core-10.0
 
 # RadiusDesk PHP7 Packages (Ubuntu 14+)
 rd_php7_pkgs:
