@@ -1,7 +1,7 @@
 RADIUSDesk Installer 1.2.1
 ===========================
 ## Introduction
-RADIUSDesk Installer is an [Ansible](http://www.ansible.com) powered utility that attempts to simplify the process of getting a working installation of [RADIUSDesk](http://www.radiusdesk.com) on a vanilla/minimal installation of RHEL/CentOS 6.7/7.x and Ubuntu 14.04/15.10/16.04/16.10 servers.
+RADIUSDesk Installer is an [Ansible](http://www.ansible.com) powered utility that attempts to simplify the process of getting a working installation of [RADIUSDesk](http://www.radiusdesk.com) on a vanilla/minimal installation of RHEL/CentOS 6.7/7.x and Ubuntu 14.04/15.10/16.04/16.10 servers. Experimental support for debian jessie.
 
 ## Prerequisite
 #### 1] Install Python
@@ -13,7 +13,7 @@ To Install Python which should come by default in most Linux distributions, you 
 
 `yum install -y python`
 
-**Ubuntu 14.04/15.10/16.04/16.10**
+**Ubuntu 14.04/15.10/16.04/16.10/Debian jessie**
 
 `apt-get install -y python`
 
@@ -37,6 +37,15 @@ yum install -y ansible
 apt-add-repository ppa:ansible/ansible
 apt-get update
 apt-get install -y ansible
+```
+
+**Debian Jessie**
+
+```
+echo "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" |tee -a /etc/apt/sources.list
+apt-get update
+apt-get install -y ansible
+
 ```
 
 #### 3] Add Managed Node(s) to SSH Known Hosts list of the Conrol Node
@@ -78,6 +87,7 @@ Ensure you use a [YAML linter](http://www.yamllint.com/) to check your syntax an
 	
     - **RHEL/CentOS 6.7/7.x**
     - **Ubuntu 14.04/15.10/16.04/16.10**    
+    - **Debian jessie (experimental)**    
 
 ## F.A.Q
 1. Why do I get an SSL3 handshake error when running RADIUSDesk Installer on Ubuntu 14.x?
