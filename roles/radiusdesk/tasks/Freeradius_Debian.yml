@@ -9,6 +9,16 @@
   apt_repository:
     repo="{{ mao_apt_ppa_repo }}"
     state=present
+  when: ( ansible_distribution == 'Ubuntu'  and   ansible_architecture == 'i386' or ansible_architecture == 'amd64' )
+
+- name: Adding RadiusDesk MAO Apt Main Repository (Ubuntu 14+/Debian)
+  apt_repository:
+    repo="{{ mao_apt_ppa_repo }}"
+    state=present
+    codename="trusty"
+  when: ( ansible_distribution == 'Debian' and   ansible_architecture == 'i386' or ansible_architecture == 'amd64' )
+
+
 
 - name: Installing Freeradius for RadiusDesk (Ubuntu 14+/Debian)
   apt:
@@ -16,6 +26,7 @@
     state=present
     update_cache=yes
   with_items: "{{ freeradius_pkgs }}"
+  when: ( ansible_architecture == 'i386' or ansible_architecture == 'amd64' )
 
 - name: Checking if we already have Freeradius Configuration Directory Backup (Ubuntu 14+/Debian)
   stat:

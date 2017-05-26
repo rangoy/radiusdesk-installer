@@ -89,6 +89,9 @@ Ensure you use a [YAML linter](http://www.yamllint.com/) to check your syntax an
     - **Ubuntu 14.04/15.10/16.04/16.10**    
     - **Debian jessie (experimental)**    
 
+Users for other architectures than i386/amd64 will have to compile freeradius and coova
+
+
 ## F.A.Q
 1. Why do I get an SSL3 handshake error when running RADIUSDesk Installer on Ubuntu 14.x?
     - Ubuntu 14.x comes with python 2.7.6 and will need to be upgraded to 2.7.9+ as follows:
